@@ -205,7 +205,7 @@
     const audio9 = document.getElementById('audio-9'); // παίζει σε κάθε κλικ κουμπιού
 
     let players = [];
-    let roles = ["Police", "DEA", "Πολίτης", "Δικηγόρος", "Cartel", "Απλός δολοφόνος", "Κατάσκοπος δολοφόνος"];
+    let roles = ["Αστυνομικός", "DEA", "Πολίτης", "Δικηγόρος", "Cartel", "Απλός δολοφόνος", "Κατάσκοπος δολοφόνος"];
     let currentPlayerIndex = 0;
     let votes = [];
     let alivePlayers = [];
@@ -340,7 +340,7 @@ audio8.play();
 audio2.currentTime = 0;
 audio2.play();
 
-if (eliminated.role === "Police") {
+if (eliminated.role === "Αστυνομικός") {
   audio3.currentTime = 0;
   audio3.play();
 } else {
@@ -361,7 +361,7 @@ setTimeout(() => startEliminationPhase(), 1500);
       confirmEliminationBtn.disabled = true;
 
       const killersAlive = alivePlayers.some(p => ["Απλός δολοφόνος", "Κατάσκοπος δολοφόνος"].includes(p.role));
-      const policeAlive = alivePlayers.some(p => p.role === "Police");
+      const policeAlive = alivePlayers.some(p => p.role === "Αστυνομικός");
       const maxSelections = policeAlive ? 2 : (killersAlive ? 2 : 1);
 
       eliminationInfo.textContent = `Επέλεξε μέχρι ${maxSelections} παίκτη(ες) για άμεση αποχώρηση:`;
@@ -392,7 +392,7 @@ setTimeout(() => startEliminationPhase(), 1500);
   selectedEliminations.forEach(name => {
     const player = players.find(p => p.name === name);
     if (player) {
-      if (player.role === "Police") policeDied = true;
+      if (player.role === "Αστυνομικός") policeDied = true;
       player.alive = false;
     }
   });
@@ -419,7 +419,7 @@ setTimeout(() => startEliminationPhase(), 1500);
   const simpleKillerAlive = isAlive("Απλός δολοφόνος");
   const spyKillerAlive = isAlive("Κατάσκοπος δολοφόνος");
   const cartelAlive = isAlive("Cartel");
-  const policeAlive = isAlive("Police");
+  const policeAlive = isAlive("Αστυνομικός");
   const deaAlive = isAlive("DEA");
 
   // ΟΜΑΔΑ ΝΑΡΚΩΤΙΚΩΝ (κερδίζει μόνο αν και οι δύο δολοφόνοι και ο DEA έχουν πεθάνει)
@@ -434,7 +434,7 @@ setTimeout(() => startEliminationPhase(), 1500);
     return;
   }
 
-  // ΟΜΑΔΑ ΚΑΚΩΝ (κερδίζει αν έχουν πεθάνει και το cartel και ο police)
+  // ΟΜΑΔΑ ΚΑΚΩΝ (κερδίζει αν έχουν πεθάνει και το cartel και ο Αστυνομικός)
   if (!cartelAlive && !policeAlive) {
     declareWin("Η Ομάδα των Κακών κερδίζει!", audio6);
     return;
