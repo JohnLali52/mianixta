@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Μια Νύχτα στην Αρναία</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #game-area { display: none; }
+    .hidden { display: none; }
+    .btn { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+    .player-box { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Μια Νύχτα στην Αρναία</h1>
+  <button id="start-btn" class="btn">Ξεκινάμε!</button>
+
+  <div id="game-area">
+    <div id="player-input">
+      <label>Όνομα Παίκτη: <input type="text" id="player-name"></label>
+      <button id="submit-name" class="btn">Επόμενος</button>
+    </div>
+
+    <div id="role-display" class="hidden">
+      <p id="assigned-role"></p>
+      <button id="next-player" class="btn">Ο επόμενος παίκτης</button>
+    </div>
+
+    <div id="voting-phase" class="hidden">
+      <h3>Ψηφοφορία</h3>
+      <p>Επίλεξε ποιον θες να ψηφίσεις:</p>
+      <div id="vote-options"></div>
+      <button id="confirm-vote" class="btn" disabled>Αποδοχή Ψήφου</button>
+    </div>
+
+    <div id="results" class="hidden">
+      <p id="vote-results"></p>
+      <ul id="detailed-results"></ul>
+      <button id="next-round" class="btn">Επόμενος Γύρος</button>
+    </div>
+
+    <div id="elimination-phase" class="hidden">
+      <h3>Επιλογή Παικτών προς Αποχώρηση</h3>
+      <p id="elimination-info"></p>
+      <div id="elimination-options"></div>
+      <button id="confirm-elimination" class="btn" disabled>Επιβεβαίωση Επιλογής</button>
+    </div>
+
+    <div id="win-message" class="hidden">
+      <h2 id="winning-team"></h2>
+    </div>
+  </div>
+
+  <audio id="audio-1" src="audio1.mp3"></audio>
+  <audio id="audio-2" src="audio2.mp3"></audio>
+  <audio id="audio-3" src="audio4.mp3"></audio>
+  <audio id="audio-4" src="audio/win-good.mp3"></audio>
+  <audio id="audio-5" src="audio/win-drugs.mp3"></audio>
+  <audio id="audio-6" src="audio/win-evil.mp3"></audio>
+
+  <script>
+    const startBtn = document.getElementById('start-btn');
+    const gameArea = document.getElementById('game-area');
+    const playerInput = document.getElementById('player-input');
+    const roleDisplay = document.getElementById('role-display');
+    const playerNameInput = document.getElementById('player-name');
+    const submitNameBtn = document.getElementById('submit-name');
+    const assignedRole = document.getElementById('assigned-role');
+    const nextPlayerBtn = document.getElementById('next-player');
+    const votingPhase = document.getElementById('voting-phase');
+    const voteOptions = document.getElementById('vote-options');
+    const confirmVoteBtn = document.getElementById('confirm-vote');
+    const resultsDiv = document.getElementById('results');
+    const voteResults = document.getElementById('vote-results');
+    const detailedResults = document.getElementById('detailed-results');
+    const nextRoundBtn = document.getElementById('next-round');
+    const eliminationPhase = document.getElementById('elimination-phase');
+    const eliminationInfo = document.getElementById('elimination-info');
+    const eliminationOptions = document.getElementById('elimination-options');
+    const confirmEliminationBtn = document.getElementById('confirm-elimination');
+    const winMessageDiv = document.getElementById('win-message');
+    const winningTeamText = document.getElementById('winning-team');
+
+    const audio1 = document.getElementById('audio-1');
+    const audio2 = document.getElementById('audio-2');
+    const audio3 = document.getElementById('audio-3');
+    const audio4 = document.getElementById('audio-4');
+    const audio5 = document.getElementById('audio-5');
+    const audio6 = document.getElementById('audio-6');
+
+    let players = [];
+    let roles = ["Police", "DEA", "Πολίτης", "Δικηγόρος", "Cartel", "Απλός δολοφόνος", "Κατάσκοπος δολοφόνος"];
+    let currentPlayerIndex = 0;
+    let votes = [];
+    let alivePlayers = [];
+    let voteCounter = 0;
+    let selectedVote = null;
+    let selectedEliminations = [];
+
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = 'none';
+      gameArea.style.display = 'block';
+    });
+
+    submitNameBtn.addEventListener('click', () => {
+      const name = playerNameInput.value.trim();
+      if (!name) return;
+      const role = roles.splice(Math.floor(Math.random() * roles.length), 1)[0];
+      const player = { name, role, alive: true };
+      players.push(player);
+      alivePlayers.push(player);
+      playerNameInput.value = '';
+      playerInput.classList.add('hidden');
+      roleDisplay.classList.remove('hidden');
+      assignedRole.textContent = `Ο ρόλος σου είναι: ${role}`;
+    });
+
+    nextPlayerBtn.addEventListener('click', () => {
+      currentPlayerIndex++;
+      if (currentPlayerIndex < 7) {
+        roleDisplay.classList.add('hidden');
+        playerInput.classList.remove('hidden');
+      } else {
+        roleDisplay.classList.add('hidden');
+        audio1.play(); // play after last player sees their role
+        setTimeout(startVoting, 2000);
+      }
+    });
+
+    function startVoting() {
+      votes = [];
+      voteCounter = 0;
+      votingPhase.classList.remove('hidden');
+      renderVoteOptions();
+    }
+
+    function renderVoteOptions() {
+      voteOptions.innerHTML = '';
+      confirmVoteBtn.disabled = true;
+      selectedVote = null;
+
+      alivePlayers.forEach(player => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = player.name;
+        btn.onclick = () => {
+          selectedVote = player.name;
+          confirmVoteBtn.disabled = false;
+        };
+        voteOptions.appendChild(btn);
+      });
+    }
+
+    confirmVoteBtn.addEventListener('click', () => {
+      if (!selectedVote) return;
+      votes.push(selectedVote);
+      voteCounter++;
+      confirmVoteBtn.disabled = true;
+      selectedVote = null;
+
+      if (voteCounter < alivePlayers.length) {
+        renderVoteOptions();
+      } else {
+        votingPhase.classList.add('hidden');
+        showResults();
+      }
+    });
+
+    function showResults() {
+      resultsDiv.classList.remove('hidden');
+
+      let voteMap = {};
+      votes.forEach(name => {
+        voteMap[name] = (voteMap[name] || 0) + 1;
+      });
+
+      const maxVotes = Math.max(...Object.values(voteMap));
+      const winners = Object.entries(voteMap).filter(([_, v]) => v === maxVotes);
+
+      detailedResults.innerHTML = '';
+      Object.entries(voteMap).forEach(([name, count]) => {
+        const li = document.createElement('li');
+        li.textContent = `${name}: ${count} ψήφοι`;
+        detailedResults.appendChild(li);
+      });
+
+      if (winners.length > 1) {
+        voteResults.textContent = "Ισοψηφία – δεν αποχωρεί κανείς.";
+        nextRoundBtn.classList.remove('hidden');
+        audio2.play();
+      } else {
+        const eliminatedName = winners[0][0];
+        voteResults.textContent = `Αποχωρεί ο παίκτης: ${eliminatedName}`;
+        const eliminated = players.find(p => p.name === eliminatedName);
+        eliminated.alive = false;
+        alivePlayers = players.filter(p => p.alive);
+        if (eliminated.role === "Police") {
+          audio3.play();
+        } else {
+          audio2.play();
+        }
+        nextRoundBtn.classList.add('hidden');
+        setTimeout(() => startEliminationPhase(), 1500);
+      }
+    }
+
+    function startEliminationPhase() {
+      selectedEliminations = [];
+      eliminationPhase.classList.remove('hidden');
+      eliminationOptions.innerHTML = '';
+      confirmEliminationBtn.disabled = true;
+
+      const killersAlive = alivePlayers.some(p => ["Απλός δολοφόνος", "Κατάσκοπος δολοφόνος"].includes(p.role));
+      const policeAlive = alivePlayers.some(p => p.role === "Police");
+      const maxSelections = policeAlive ? 1 : (killersAlive ? 2 : 1);
+
+      eliminationInfo.textContent = `Επέλεξε μέχρι ${maxSelections} παίκτη(ες) για άμεση αποχώρηση:`;
+
+      alivePlayers.forEach(player => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = player.name;
+        btn.onclick = () => {
+          if (selectedEliminations.includes(player.name)) {
+            selectedEliminations = selectedEliminations.filter(n => n !== player.name);
+            btn.style.backgroundColor = '';
+          } else if (selectedEliminations.length < maxSelections) {
+            selectedEliminations.push(player.name);
+            btn.style.backgroundColor = 'red';
+          }
+          confirmEliminationBtn.disabled = selectedEliminations.length === 0;
+        };
+        eliminationOptions.appendChild(btn);
+      });
+    }
+
+    confirmEliminationBtn.addEventListener('click', () => {
+      selectedEliminations.forEach(name => {
+        const player = players.find(p => p.name === name);
+        if (player) player.alive = false;
+      });
+      alivePlayers = players.filter(p => p.alive);
+      eliminationPhase.classList.add('hidden');
+      checkWinCondition();
+      if (!winMessageDiv.classList.contains('hidden')) return;
+      resultsDiv.classList.add('hidden');
+      startVoting();
+    });
+
+    nextRoundBtn.addEventListener('click', () => {
+      resultsDiv.classList.add('hidden');
+      if (!winMessageDiv.classList.contains('hidden')) return;
+      startVoting();
+    });
+
+    function checkWinCondition() {
+      const isAlive = role => alivePlayers.some(p => p.role === role);
+      const killersDead = !isAlive("Απλός δολοφόνος") && !isAlive("Κατάσκοπος δολοφόνος");
+      const cartelDead = !isAlive("Cartel");
+      const policeDead = !isAlive("Police");
+      const deaDead = !isAlive("DEA");
+
+      if (killersDead && cartelDead) {
+        declareWin("Η Ομάδα των Καλών κερδίζει!", audio4);
+      } else if (killersDead && deaDead) {
+        declareWin("Η Ομάδα Ναρκωτικών κερδίζει!", audio5);
+      } else if (cartelDead && policeDead) {
+        declareWin("Η Ομάδα των Κακών κερδίζει!", audio6);
+      }
+    }
+
+    function declareWin(message, audioClip) {
+      winMessageDiv.classList.remove('hidden');
+      winningTeamText.textContent = message;
+      audioClip.play();
+    }
+  </script>
+</body>
+</html>
